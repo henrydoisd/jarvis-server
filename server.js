@@ -1,49 +1,42 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post("/jarvis", async (req, res) => {
-  const { message } = req.body;
+app.get("/", (req, res) => {
+  res.send("Jarvis realtime server online.");
+});
 
+app.post("/session", async (req, res) => {
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "Você é um assistente estilo Jarvis: inteligente, direto e elegante."
-          },
-          {
-            role: "user",
-            content: message
-          }
-        ]
+        model: "gpt-realtime",
+        voice: "alloy",
+        instructions: "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto e preciso."
       })
     });
 
     const data = await response.json();
 
-    res.json({
-      reply: data.choices[0].message.content
-    });
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
 
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Erro na IA" });
+    res.status(500).json({
+      error: "Erro ao criar sessão realtime",
+      details: error.message
+    });
   }
-});
-
-app.get("/", (req, res) => {
-  res.send("Jarvis está online.");
 });
 
 const PORT = process.env.PORT || 3000;
