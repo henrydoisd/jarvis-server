@@ -5,48 +5,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Jarvis token server online.");
-});
-
 app.get("/token", async (req, res) => {
   try {
-    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "OpenAI-Beta": "realtime=v1"
       },
       body: JSON.stringify({
-        session: {
-          type: "realtime",
-          model: "gpt-realtime",
-          instructions: "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto, preciso e calmo.",
-          audio: {
-            output: {
-              voice: "marin"
-            }
-          }
-        }
+        model: "gpt-realtime",
+        voice: "alloy"
       })
     });
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
+    console.log("SESSION:", data);
 
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({
-      error: "Erro ao criar token",
-      details: error.message
+    res.json({
+      value: data.client_secret?.value
     });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erro ao criar sessão" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Servidor rodando na porta", PORT);
+app.listen(3000, () => {
+  console.log("Servidor rodando na porta 3000");
 });
