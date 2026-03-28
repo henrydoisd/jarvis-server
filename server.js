@@ -3,37 +3,50 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+
+// muito importante: aceitar SDP bruto vindo do navegador
+app.use(express.text({ type: ["application/sdp", "text/plain"] }));
 
 app.get("/", (req, res) => {
-  res.send("Jarvis realtime server online.");
+  res.send("Jarvis WebRTC server online.");
+});
+
+const sessionConfig = JSON.stringify({
+  type: "realtime",
+  model: "gpt-realtime",
+  audio: {
+    output: {
+      voice: "alloy"
+    }
+  },
+  instructions:
+    "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto, preciso e calmo."
 });
 
 app.post("/session", async (req, res) => {
   try {
-    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+    const fd = new FormData();
+    fd.set("sdp", req.body);
+    fd.set("session", sessionConfig);
+
+    const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
       },
-      body: JSON.stringify({
-        model: "gpt-realtime",
-        voice: "alloy",
-        instructions: "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto e preciso."
-      })
+      body: fd
     });
 
-    const data = await response.json();
+    const sdp = await response.text();
 
     if (!response.ok) {
-      return res.status(response.status).json(data);
+      return res.status(response.status).send(sdp);
     }
 
-    res.json(data);
+    res.send(sdp);
   } catch (error) {
     res.status(500).json({
-      error: "Erro ao criar sessão realtime",
+      error: "Erro ao criar sessão WebRTC",
       details: error.message
     });
   }
@@ -41,5 +54,5 @@ app.post("/session", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Servidor rodando");
+  console.log("Servidor WebRTC rodando na porta", PORT);
 });
