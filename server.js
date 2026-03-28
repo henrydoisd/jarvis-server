@@ -3,50 +3,37 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-
-// muito importante: aceitar SDP bruto vindo do navegador
-app.use(express.text({ type: ["application/sdp", "text/plain"] }));
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Jarvis WebRTC server online.");
 });
 
-const sessionConfig = JSON.stringify({
-  type: "realtime",
-  model: "gpt-realtime",
-  audio: {
-    output: {
-      voice: "alloy"
-    }
-  },
-  instructions:
-    "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto, preciso e calmo."
-});
-
 app.post("/session", async (req, res) => {
   try {
-    const fd = new FormData();
-    fd.set("sdp", req.body);
-    fd.set("session", sessionConfig);
-
-    const response = await fetch("https://api.openai.com/v1/realtime/calls", {
+    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
       },
-      body: fd
+      body: JSON.stringify({
+        model: "gpt-4o-realtime-preview",
+        voice: "alloy",
+        instructions: "Você é Jarvis. Responda em português do Brasil."
+      })
     });
 
-    const sdp = await response.text();
+    const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).send(sdp);
+      return res.status(response.status).json(data);
     }
 
-    res.send(sdp);
+    res.json(data);
   } catch (error) {
     res.status(500).json({
-      error: "Erro ao criar sessão WebRTC",
+      error: "Erro ao criar sessão",
       details: error.message
     });
   }
@@ -54,5 +41,5 @@ app.post("/session", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Servidor WebRTC rodando na porta", PORT);
+  console.log("Servidor rodando");
 });
