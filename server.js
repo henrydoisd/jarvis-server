@@ -6,21 +6,28 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Jarvis WebRTC server online.");
+  res.send("Jarvis token server online.");
 });
 
-app.post("/session", async (req, res) => {
+app.get("/token", async (req, res) => {
   try {
-    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-realtime-preview",
-        voice: "alloy",
-        instructions: "Você é Jarvis. Responda em português do Brasil."
+        session: {
+          type: "realtime",
+          model: "gpt-realtime",
+          instructions: "Você é Jarvis. Responda em português do Brasil. Seja elegante, direto, preciso e calmo.",
+          audio: {
+            output: {
+              voice: "marin"
+            }
+          }
+        }
       })
     });
 
@@ -33,7 +40,7 @@ app.post("/session", async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({
-      error: "Erro ao criar sessão",
+      error: "Erro ao criar token",
       details: error.message
     });
   }
@@ -41,5 +48,5 @@ app.post("/session", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Servidor rodando");
+  console.log("Servidor rodando na porta", PORT);
 });
